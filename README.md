@@ -3,21 +3,52 @@
 This project predict customer churn by building a machine learning model using the Telco Customer Churn dataset. The goal is to identify customers who are likely to discontinue service, allowing the company to take proactive measures to retain them as customers
 
 ## Dataset
-
+  Source: Kaggle (Telco Customer Churn)
+  
 ## Key Steps
 
-### 1. Data Preprocessing
+  ### 1. Data Preprocessing
+    -removed customeID
+    -TotalCharges converted to numeric type and removed missing values with median
+    
+  ### 2. Feature Engineering
+    - Created TenureGroup by binning tenure into meaningful categories
+    - Created NumServices: number of optional services subscribed to
+    - Created ChargeRatio: MonthlyCharges / TotalCharges
+    
+  ### 3. Exploratory Data Analysis (EDA)
+    - Plotted churn distribution, tenure, charges, service usage
+    - Examined correlation among numeric features
+    
+  ### 4. Preprocessing Pipeline
+    - Numeric features: assigned using median, then scaled
+    - Categorical features: assigned using mode, then one-hot encoded
+    
+  ### 5. Model Training & Evaluation
+    Trained the following models:
+      - Logistic Regression
+      - Random Forest
+      - XGBoost
+      - Gradient Boosting
 
-### 2. Feature Engineering
 
-### 3. Exploratory Data Analysis (EDA)
+    Metrics evaluated:
+      - Accuracy
+      - ROC AUC
+      - Average Precision
+      - Confusion Matrix
+      - Feature Importance
+      
+  ### 6. Hyperparameter Tuning
+    Used GridSearchCV to tune the XGBoost model with a focus on:
 
-### 4. Preprocessing Pipeline
+      - learning_rate
+      - n_estimators
+      - max_depth
+      - subsample
+      - colsample_bytree
 
-### 5. Model Training & Evaluation
-
-### 6. Hyperparameter Tuning
-
+    Best model ROC AUC after tuning: 0.846
 
 ## Results
 
