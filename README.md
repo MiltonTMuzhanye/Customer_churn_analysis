@@ -22,7 +22,7 @@ This project predict customer churn by building a machine learning model using t
     
   ### 4. Preprocessing Pipeline
     - Numeric features: assigned using median, then scaled
-    - Categorical features: assigned using mode, then one-hot encoded
+    - Categorical features: assigned using mode, then one hot encoded
     
   ### 5. Model Training & Evaluation
     Trained the following models:
