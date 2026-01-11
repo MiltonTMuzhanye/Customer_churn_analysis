@@ -5,13 +5,18 @@ import json
 
 class DataLoader:
     """Load and validate raw data"""
+    """Functions:"""
+    """load_raw_data"""
+    """validate data schema"""
+    """"""
     
     @staticmethod
     def load_raw_data(filepath: str = 'data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv') -> pd.DataFrame:
         """Load raw customer data"""
-        print(f"📥 Loading raw data from {filepath}")
+        print(f"Loading raw data from {filepath}")
         data = pd.read_csv(filepath)
-        print(f"✅ Loaded {len(data)} records with {len(data.columns)} features")
+        print(f" Loaded {len(data)} records with {len(data.columns)} features")
+        #print("Test 1")
         return data
     
     @staticmethod
@@ -32,7 +37,7 @@ class DataLoader:
         if missing_cols:
             raise ValueError(f"Missing required columns: {missing_cols}")
         
-        # Basic statistics for numeric columns
+        # statistics for numeric columns
         numeric_cols = data.select_dtypes(include=[np.number]).columns
         for col in numeric_cols:
             validation_results['basic_stats'][col] = {
@@ -49,4 +54,4 @@ class DataLoader:
         """Save validation report"""
         with open(filepath, 'w') as f:
             json.dump(validation_results, f, indent=2)
-        print(f"💾 Validation report saved to {filepath}")
+        print(f"Validation report saved to {filepath}")
