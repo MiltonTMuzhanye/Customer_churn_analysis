@@ -1,0 +1,116 @@
+project:
+  name: "Customer Churn Prediction System"
+  version: "1.0.0"
+  environment: "development"  # development, staging, production
+
+data:
+  raw_path: "data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+  processed_path: "data/processed/"
+  external_path: "data/external/"
+  target_column: "Churn"
+  test_size: 0.2
+  random_state: 42
+  validation_size: 0.2
+
+features:
+  numerical_features:
+    - "tenure"
+    - "MonthlyCharges"
+    - "TotalCharges"
+    - "SeniorCitizen"
+  
+  categorical_features:
+    - "gender"
+    - "Partner"
+    - "Dependents"
+    - "PhoneService"
+    - "MultipleLines"
+    - "InternetService"
+    - "OnlineSecurity"
+    - "OnlineBackup"
+    - "DeviceProtection"
+    - "TechSupport"
+    - "StreamingTV"
+    - "StreamingMovies"
+    - "Contract"
+    - "PaperlessBilling"
+    - "PaymentMethod"
+  
+  id_columns:
+    - "customerID"
+  
+  categorical_encoding: "onehot"  # onehot, label, target
+  
+  numerical_imputation: "median"
+  categorical_imputation: "mode"
+
+model:
+  type: "ensemble"  # logistic_regression, random_forest, xgboost, lightgbm, catboost, ensemble
+  hyperparameter_tuning: true
+  cv_folds: 5
+  scoring_metric: "roc_auc"
+  n_jobs: -1
+  random_state: 42
+
+  models:
+    logistic_regression:
+      C: 1.0
+      max_iter: 1000
+      solver: "liblinear"
+    
+    random_forest:
+      n_estimators: 100
+      max_depth: 10
+      min_samples_split: 5
+      min_samples_leaf: 2
+    
+    xgboost:
+      n_estimators: 100
+      learning_rate: 0.1
+      max_depth: 6
+      subsample: 0.8
+      colsample_bytree: 0.8
+    
+    lightgbm:
+      n_estimators: 100
+      learning_rate: 0.1
+      num_leaves: 31
+      min_child_samples: 20
+    
+    catboost:
+      iterations: 100
+      learning_rate: 0.1
+      depth: 6
+
+training:
+  batch_size: 32
+  epochs: 100
+  early_stopping: true
+  early_stopping_patience: 10
+  save_best_model: true
+  model_save_path: "artifacts/trained_models/"
+  
+evaluation:
+  threshold: 0.5
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1"
+    - "roc_auc"
+    - "log_loss"
+
+inference:
+  batch_size: 1000
+  threshold: 0.5
+  output_path: "data/processed/predictions/"
+
+monitoring:
+  drift_detection: true
+  drift_threshold: 0.1
+  feature_importance_monitoring: true
+  
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/app.log"

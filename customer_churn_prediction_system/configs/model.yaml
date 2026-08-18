@@ -1,0 +1,38 @@
+model_registry:
+  mlflow_tracking_uri: "mlflow/"
+  experiment_name: "customer_churn_experiment"
+  model_name: "customer_churn_model"
+  model_version: "1.0.0"
+
+hyperparameter_search:
+  logistic_regression:
+    param_grid:
+      C: [0.01, 0.1, 1.0, 10.0]
+      solver: ['liblinear', 'lbfgs']
+  
+  random_forest:
+    param_grid:
+      n_estimators: [50, 100, 200]
+      max_depth: [5, 10, 15]
+      min_samples_split: [2, 5, 10]
+      min_samples_leaf: [1, 2, 4]
+  
+  xgboost:
+    param_grid:
+      n_estimators: [50, 100, 200]
+      learning_rate: [0.01, 0.1, 0.3]
+      max_depth: [3, 6, 9]
+      subsample: [0.6, 0.8, 1.0]
+  
+  lightgbm:
+    param_grid:
+      n_estimators: [50, 100, 200]
+      learning_rate: [0.01, 0.1, 0.3]
+      num_leaves: [15, 31, 63]
+      min_child_samples: [10, 20, 30]
+  
+  catboost:
+    param_grid:
+      iterations: [50, 100, 200]
+      learning_rate: [0.01, 0.1, 0.3]
+      depth: [3, 6, 9]

@@ -1,0 +1,92 @@
+data_validation:
+  schema:
+    customerID:
+      type: string
+      required: true
+    gender:
+      type: string
+      allowed_values: ["Male", "Female"]
+      required: true
+    SeniorCitizen:
+      type: integer
+      allowed_values: [0, 1]
+      required: true
+    Partner:
+      type: string
+      allowed_values: ["Yes", "No"]
+      required: true
+    Dependents:
+      type: string
+      allowed_values: ["Yes", "No"]
+      required: true
+    tenure:
+      type: integer
+      min_value: 0
+      max_value: 72
+      required: true
+    PhoneService:
+      type: string
+      allowed_values: ["Yes", "No"]
+      required: true
+    MultipleLines:
+      type: string
+      allowed_values: ["Yes", "No", "No phone service"]
+      required: true
+    InternetService:
+      type: string
+      allowed_values: ["DSL", "Fiber optic", "No"]
+      required: true
+    OnlineSecurity:
+      type: string
+      allowed_values: ["Yes", "No", "No internet service"]
+      required: true
+    OnlineBackup:
+      type: string
+      allowed_values: ["Yes", "No", "No internet service"]
+      required: true
+    DeviceProtection:
+      type: string
+      allowed_values: ["Yes", "No", "No internet service"]
+      required: true
+    TechSupport:
+      type: string
+      allowed_values: ["Yes", "No", "No internet service"]
+      required: true
+    StreamingTV:
+      type: string
+      allowed_values: ["Yes", "No", "No internet service"]
+      required: true
+    StreamingMovies:
+      type: string
+      allowed_values: ["Yes", "No", "No internet service"]
+      required: true
+    Contract:
+      type: string
+      allowed_values: ["Month-to-month", "One year", "Two year"]
+      required: true
+    PaperlessBilling:
+      type: string
+      allowed_values: ["Yes", "No"]
+      required: true
+    PaymentMethod:
+      type: string
+      allowed_values: ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"]
+      required: true
+    MonthlyCharges:
+      type: float
+      min_value: 0
+      required: true
+    TotalCharges:
+      type: float
+      min_value: 0
+      required: true
+    Churn:
+      type: string
+      allowed_values: ["Yes", "No"]
+      required: true
+  
+  quality_checks:
+    missing_threshold: 0.0
+    duplicate_threshold: 0.0
+    outlier_method: "iqr"  # iqr, zscore
+    outlier_threshold: 1.5
