@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, Tuple
 from ..utils.logger import default_logger as logger
 from ..utils.exceptions import DataValidationError
 from ..utils.config import config_loader
@@ -24,33 +24,136 @@ class DataValidator:
                     if rules.get('required', False):
                         errors.append(f"Required column missing: {column}")
                     continue
+
+                series = df[column]
                 
                 # Check type
                 expected_type = rules.get('type')
-                if expected_type == 'string' and df[column].dtype != 'object':
-                    errors.append(f"Column {column} should be string type")
-                elif expected_type == 'integer' and not pd.api.types.is_integer_dtype(df[column]):
-                    errors.append(f"Column {column} should be integer type")
-                elif expected_type == 'float' and not pd.api.types.is_float_dtype(df[column]):
-                    errors.append(f"Column {column} should be float type")
-                
-                # Check allowed values
-                allowed_values = rules.get('allowed_values')
-                if allowed_values:
-                    invalid_values = set(df[column].unique()) - set(allowed_values)
-                    if invalid_values:
+                if expected_type == "string":
+                    if not (
+                        pd.api.types.is_object_dtype(series)
+                        or pd.api.types.is_string_dtype(series)
+                    ):
                         errors.append(
-                            f"Column {column} contains invalid values: {invalid_values}"
+                            f"Column {column} should be string type, "
+                            f"got {series.dtype}"
+                        )
+
+                elif expected_type == "integer":
+
+                    if not pd.api.types.is_integer_dtype(series):
+                        numeric_series = pd.to_numeric(
+                            series,
+                            errors="coerce"
+                        )
+
+                        invalid_numeric = numeric_series.isna().sum()
+
+                        if invalid_numeric > 0:
+                            errors.append(
+                                f"Column {column} contains "
+                                f"{invalid_numeric} non-numeric values"
+                            )
+                        elif not (
+                            numeric_series.dropna() % 1 == 0
+                        ).all():
+                            errors.append(
+                                f"Column {column} contains "
+                                f"non-integer numeric values"
+                            )
+
+                elif expected_type == "float":
+
+                    numeric_series = pd.to_numeric(
+                        series,
+                        errors="coerce"
+                    )
+
+                    non_numeric = (
+                        numeric_series.isna()
+                        & series.notna()
+                        & (series.astype(str).str.strip() != "")
+                    )
+
+                    if non_numeric.any():
+                        errors.append(
+                            f"Column {column} contains "
+                            f"non-numeric values"
                         )
                 
-                # Check min/max values
-                min_value = rules.get('min_value')
-                if min_value is not None and df[column].min() < min_value:
-                    errors.append(f"Column {column} has values below {min_value}")
+                # Check allowed values
+                allowed_values = rules.get("allowed_values")
+                if allowed_values:
+                    cleaned_values = series.dropna()
+
+                    invalid_values = (
+                        set(cleaned_values.unique())
+                        - set(allowed_values)
+                    )
+
+                    # For raw numeric columns, compare numerically
+                    if expected_type in ["integer", "float"]:
+                        numeric_allowed = set(
+                            pd.to_numeric(
+                                list(allowed_values),
+                                errors="coerce"
+                            )
+                        )
+
+                        numeric_values = pd.to_numeric(
+                            cleaned_values,
+                            errors="coerce"
+                        ).dropna()
+
+                        invalid_numeric = (
+                            set(numeric_values)
+                            - numeric_allowed
+                        )
+
+                        invalid_values = invalid_numeric
+
+                    if invalid_values:
+                        errors.append(
+                            f"Column {column} contains invalid "
+                            f"values: {invalid_values}"
+                        )
+
                 
-                max_value = rules.get('max_value')
-                if max_value is not None and df[column].max() > max_value:
-                    errors.append(f"Column {column} has values above {max_value}")
+                # Check min
+                min_value = rules.get("min_value")
+
+                if min_value is not None:
+                    numeric_series = pd.to_numeric(
+                        series,
+                        errors="coerce"
+                    )
+
+                    if (
+                        numeric_series.dropna() < min_value
+                    ).any():
+                        errors.append(
+                            f"Column {column} has values below "
+                            f"{min_value}"
+                        )
+
+                # Check max
+                max_value = rules.get("max_value")
+
+                if max_value is not None:
+                    numeric_series = pd.to_numeric(
+                        series,
+                        errors="coerce"
+                    )
+
+                    if (
+                        numeric_series.dropna() > max_value
+                    ).any():
+                        errors.append(
+                            f"Column {column} has values above "
+                            f"{max_value}"
+                        )
+
+
             
             if errors:
                 raise DataValidationError(f"Schema validation failed: {errors}")
@@ -74,6 +177,7 @@ class DataValidator:
             missing_columns = []
             for col in df.columns:
                 missing_pct = df[col].isnull().mean()
+
                 if missing_pct > missing_threshold:
                     missing_columns.append({
                         'column': col,
@@ -90,7 +194,12 @@ class DataValidator:
             # Check for duplicates
             duplicate_threshold = self.quality_config.get('duplicate_threshold', 0.0)
             duplicates = df.duplicated().sum()
-            duplicate_pct = duplicates / len(df)
+
+            duplicate_pct = (
+                duplicates / len(df)
+                if len(df) > 0
+                else 0
+            )
             
             results['checks']['duplicates'] = {
                 'passed': duplicate_pct <= duplicate_threshold,
@@ -117,8 +226,13 @@ class DataValidator:
                     outliers = df[(df[col] < lower_bound) | (df[col] > upper_bound)]
                     outlier_counts[col] = len(outliers)
                 elif outlier_method == 'zscore':
-                    z_scores = np.abs((df[col] - df[col].mean()) / df[col].std())
-                    outlier_counts[col] = (z_scores > outlier_threshold).sum()
+                    std = df[col].std()
+
+                    if std == 0:
+                        outlier_counts[col] = 0
+                    else:
+                        z_scores = np.abs((df[col] - df[col].mean()) / std)
+                        outlier_counts[col] = (z_scores > outlier_threshold).sum()
             
             results['checks']['outliers'] = {
                 'passed': True,

@@ -29,32 +29,43 @@ class DataPreprocessor:
         """Clean the raw data."""
         try:
             df = df.copy()
-            
-            # Convert TotalCharges to numeric, handling empty strings
-            if 'TotalCharges' in df.columns:
-                df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
-                # Fill missing TotalCharges with Median
-                df['TotalCharges'].fillna(df['TotalCharges'].median(), inplace=True)
-            
-            # Convert SeniorCitizen to categorical
-            if 'SeniorCitizen' in df.columns:
-                df['SeniorCitizen'] = df['SeniorCitizen'].astype('object')
-                # Add it to categorical features
-                if 'SeniorCitizen' not in self.categorical_features:
-                    self.categorical_features.append('SeniorCitizen')
-            
-            # Handle missing values
+
+            if "TotalCharges" in df.columns:
+                df["TotalCharges"] = pd.to_numeric(
+                    df["TotalCharges"],
+                    errors="coerce"
+                )
+
+                median_total_charges = df["TotalCharges"].median()
+
+                df["TotalCharges"] = df["TotalCharges"].fillna(
+                    median_total_charges
+                )
+
             for col in df.columns:
-                if df[col].dtype == 'object':
-                    df[col].fillna(df[col].mode()[0] if not df[col].mode().empty else 'Unknown', inplace=True)
-                else:
-                    df[col].fillna(df[col].median(), inplace=True)
-            
+
+                if df[col].isnull().any():
+
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        median_value = df[col].median()
+                        df[col] = df[col].fillna(median_value)
+
+                    else:
+                        mode = df[col].mode()
+
+                        if not mode.empty:
+                            df[col] = df[col].fillna(mode.iloc[0])
+                        else:
+                            df[col] = df[col].fillna("Unknown")
+
             logger.info(f"Data cleaned. Shape: {df.shape}")
+
             return df
-            
+
         except Exception as e:
-            raise FeatureEngineeringError(f"Data cleaning error: {str(e)}")
+            raise FeatureEngineeringError(
+                f"Data cleaning error: {str(e)}"
+            )
     
     def create_preprocessor(self, df: pd.DataFrame, fit: bool = True) -> Pipeline:
         """Create a preprocessing pipeline."""
@@ -158,13 +169,15 @@ class DataPreprocessor:
             y = df[self.target_column].copy()
             
             # Encode target if needed
-            if y.dtype == 'object':
+            if pd.api.types.is_object_dtype(y) or pd.api.types.is_string_dtype(y):
                 if self.target_encoder is None:
                     self.target_encoder = LabelEncoder()
                     y_encoded = self.target_encoder.fit_transform(y)
                 else:
                     y_encoded = self.target_encoder.transform(y)
-                return pd.Series(y_encoded, name=self.target_column)
+
+                return pd.Series(y_encoded, index=y.index, name=self.target_column)
+
             else:
                 return y
             
