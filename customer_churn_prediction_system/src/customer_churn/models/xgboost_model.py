@@ -20,8 +20,7 @@ class XGBoostModel:
             'subsample': self.config.get('subsample', 0.8),
             'colsample_bytree': self.config.get('colsample_bytree', 0.8),
             'random_state': self.config.get('random_state', 42),
-            'eval_metric': 'logloss',
-            'use_label_encoder': False
+            'eval_metric': 'logloss'
         }
         params.update(kwargs)
         return xgb.XGBClassifier(**params)

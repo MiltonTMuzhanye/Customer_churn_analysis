@@ -22,7 +22,7 @@ class HyperparameterTuner:
         try:
             # Create scoring
             if scoring == 'roc_auc':
-                scorer = make_scorer(roc_auc_score, needs_proba=True)
+                scorer = 'roc_auc'
             else:
                 scorer = scoring
             
@@ -66,7 +66,7 @@ class HyperparameterTuner:
         try:
             # Create scoring
             if scoring == 'roc_auc':
-                scorer = make_scorer(roc_auc_score, needs_proba=True)
+                scorer = 'roc_auc'
             else:
                 scorer = scoring
             
