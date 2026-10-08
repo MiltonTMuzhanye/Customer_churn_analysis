@@ -48,19 +48,42 @@ class BatchPredictor:
             logger.error(f"Batch prediction error: {str(e)}")
             raise
     
-    def predict_database(self, query: str, connection, output_path: str = None) -> pd.DataFrame:
-        """Make predictions on database data."""
+    def predict_database(
+        self,
+        query: str,
+        connection,
+        output_path: str = None,
+    ) -> pd.DataFrame:
+        """Predict database query results and optionally save them."""
         try:
             logger.info(f"Executing query: {query}")
-            df = pd.read_sql(query, connection)
-            
-            results = self.predict_file(df, output_path)
-            return results
-            
+            df = pd.read_sql_query(query, connection)
+
+            if df.empty:
+                logger.warning("Database query returned no rows")
+                return pd.DataFrame()
+
+            results = self.inference_pipeline.predict(df)
+            predictions_df = pd.DataFrame(results["predictions"])
+            predictions_df.index = df.index
+            output_df = pd.concat([df, predictions_df], axis=1)
+
+            if output_path:
+                Path(output_path).parent.mkdir(
+                    parents=True,
+                    exist_ok=True,
+                )
+                output_df.to_csv(output_path, index=False)
+                logger.info(
+                    f"Database predictions saved to {output_path}"
+                )
+
+            return output_df
+
         except Exception as e:
             logger.error(f"Database prediction error: {str(e)}")
             raise
-    
+
     def stream_predict(self, df_generator, output_path: str = None):
         """Stream predictions from a generator."""
         try:

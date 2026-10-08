@@ -1,0 +1,25 @@
+artifact_path: /home/milton/Documents/Customer_churn_analysis/customer_churn_prediction_system/mlruns/0/models/m-ced37c0071e943469dc63360d83d8739/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.4
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.1
+    skops_trusted_types:
+    - xgboost.core.Booster
+    - xgboost.sklearn.XGBClassifier
+mlflow_version: 3.16.1
+model_id: m-ced37c0071e943469dc63360d83d8739
+model_size_bytes: 87936
+model_uuid: m-ced37c0071e943469dc63360d83d8739
+prompts: null
+run_id: 097883b1009c4f70953e6e4314636806
+utc_time_created: '2026-10-08 23:20:17.164006'

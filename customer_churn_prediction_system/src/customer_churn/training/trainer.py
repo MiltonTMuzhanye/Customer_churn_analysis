@@ -11,7 +11,7 @@ import json
 from ..utils.logger import default_logger as logger
 from ..utils.exceptions import ModelTrainingError
 from ..utils.config import config_loader
-from ..utils.helpers import save_artifact, load_artifact, get_timestamp
+from ..utils.helpers import save_artifact, load_artifact, get_timestamp, make_json_serializable
 
 class ModelTrainer:
     """Handle model training and evaluation."""
@@ -31,7 +31,7 @@ class ModelTrainer:
         self.best_params = None
         
         # Setup MLflow
-        mlflow.set_tracking_uri("mlflow/")
+        mlflow.set_tracking_uri("sqlite:///mlflow.db")
         
     def prepare_data(self, X: pd.DataFrame, y: pd.Series) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
         """Split data into train and test sets."""
@@ -56,9 +56,9 @@ class ModelTrainer:
                 raise ModelTrainingError("Training data not prepared")
             
             # Initialize model
-            model_params = self.model_config.get("models", {}).get(model_name, {})
+            model_params = self.model_config.get("models", {}).get(model_name, {}).get(model_name, {}).copy()
             model_params.update(kwargs)
-            
+        
             model_instance = model_class(model_params)
             model = model_instance.train(X_train, y_train)
             
@@ -106,41 +106,100 @@ class ModelTrainer:
             model_path = model_path or self.training_config.get("model_save_path")
             if not model_path:
                 raise ModelTrainingError("No model save path provided")
-            
-            # Create timestamp
+
             timestamp = get_timestamp()
-            
+
             # Save model
             model_file = Path(model_path) / f"{self.model_name}_{timestamp}.pkl"
             save_artifact(self.model, model_file)
-            
+
             # Save metadata
             metadata_file = Path(model_path) / f"{self.model_name}_{timestamp}_metadata.json"
             metadata = metadata or {}
+
+            params = (
+                self.model.get_params()
+                if hasattr(self.model, "get_params")
+                else {}
+            )
+
             metadata.update({
-                'model_name': self.model_name,
-                'timestamp': timestamp,
-                'train_shape': self.X_train.shape if self.X_train is not None else None,
-                'test_shape': self.X_test.shape if self.X_test is not None else None,
-                'params': self.model.get_params() if hasattr(self.model, 'get_params') else {},
-                'features': list(self.X_train.columns) if self.X_train is not None else []
+                "model_name": self.model_name,
+                "timestamp": timestamp,
+                "train_shape": (
+                    list(self.X_train.shape)
+                    if self.X_train is not None
+                    else None
+                ),
+                "test_shape": (
+                    list(self.X_test.shape)
+                    if self.X_test is not None
+                    else None
+                ),
+                "params": params,
+                "features": (
+                    list(self.X_train.columns)
+                    if self.X_train is not None
+                    else []
+                )
             })
-            
-            with open(metadata_file, 'w') as f:
+
+            def make_json_serializable(value):
+                """Convert NumPy and nested values into JSON-compatible types."""
+                if isinstance(value, np.ndarray):
+                    return value.tolist()
+
+                if isinstance(value, np.integer):
+                    return int(value)
+
+                if isinstance(value, np.floating):
+                    return float(value)
+
+                if isinstance(value, np.bool_):
+                    return bool(value)
+
+                if isinstance(value, dict):
+                    return {
+                        str(key): make_json_serializable(item)
+                        for key, item in value.items()
+                    }
+
+                if isinstance(value, (list, tuple)):
+                    return [
+                        make_json_serializable(item)
+                        for item in value
+                    ]
+
+                return value
+
+            metadata = make_json_serializable(metadata)
+
+            with open(metadata_file, "w") as f:
                 json.dump(metadata, f, indent=2)
-            
+
             # Log with MLflow
-            with mlflow.start_run(run_name=f"{self.model_name}_{timestamp}"):
-                mlflow.log_params(metadata.get('params', {}))
-                mlflow.log_metrics(metadata.get('metrics', {}))
-                mlflow.sklearn.log_model(self.model, self.model_name)
-            
+            with mlflow.start_run(
+                run_name=f"{self.model_name}_{timestamp}"
+            ):
+                mlflow.log_params(metadata.get("params", {}))
+                mlflow.log_metrics(metadata.get("metrics", {}))
+                mlflow.sklearn.log_model(
+                    self.model,
+                    name=self.model_name,
+                    skops_trusted_types=[
+                        "xgboost.core.Booster",
+                        "xgboost.sklearn.XGBClassifier",
+                    ],
+                )
+
             logger.info(f"Model and metadata saved to {model_path}")
             return model_file
-            
+
         except Exception as e:
-            raise ModelTrainingError(f"Error saving model: {str(e)}")
-    
+            raise ModelTrainingError(
+                f"Error saving model: {str(e)}"
+            )
+
     def load_model(self, model_path: str) -> Any:
         """Load saved model."""
         try:

@@ -68,44 +68,73 @@ class DataPreprocessor:
             )
     
     def create_preprocessor(self, df: pd.DataFrame, fit: bool = True) -> Pipeline:
-        """Create a preprocessing pipeline."""
+        """Create a preprocessing pipeline using all available feature columns."""
         try:
-            # Update features based on actual data
-            if not self.numerical_features:
-                self.numerical_features = df.select_dtypes(include=[np.number]).columns.tolist()
-                self.numerical_features = [col for col in self.numerical_features 
-                                         if col not in self.id_columns and col != self.target_column]
-            
-            if not self.categorical_features:
-                self.categorical_features = df.select_dtypes(include=['object']).columns.tolist()
-                self.categorical_features = [col for col in self.categorical_features 
-                                           if col not in self.id_columns and col != self.target_column]
-            
-            # Create transformers
+            excluded_columns = set(
+                self.id_columns + [self.target_column]
+            )
+
+            # Detect features from the actual dataframe so engineered
+            # features are included automatically.
+            self.numerical_features = [
+                col
+                for col in df.select_dtypes(include=[np.number]).columns
+                if col not in excluded_columns
+            ]
+
+            self.categorical_features = [
+                col
+                for col in df.select_dtypes(
+                    include=["object", "category"]
+                ).columns
+                if col not in excluded_columns
+            ]
+
             numerical_transformer = StandardScaler()
-            categorical_transformer = OneHotEncoder(handle_unknown='ignore', sparse_output=False)
-            
-            # Create column transformer
+
+            categorical_transformer = OneHotEncoder(
+                handle_unknown="ignore",
+                sparse_output=False
+            )
+
             preprocessor = ColumnTransformer(
                 transformers=[
-                    ('num', numerical_transformer, self.numerical_features),
-                    ('cat', categorical_transformer, self.categorical_features)
+                    (
+                        "num",
+                        numerical_transformer,
+                        self.numerical_features
+                    ),
+                    (
+                        "cat",
+                        categorical_transformer,
+                        self.categorical_features
+                    )
                 ],
-                remainder='drop'
+                remainder="drop"
             )
-            
+
             if fit:
-                # Fit the preprocessor
-                X = df[self.numerical_features + self.categorical_features]
+                X = df[
+                    self.numerical_features +
+                    self.categorical_features
+                ]
+
                 preprocessor.fit(X)
                 self.preprocessor = preprocessor
-            
-            logger.info("Preprocessor created successfully")
+
+            logger.info(
+                "Preprocessor created successfully. "
+                f"Numerical features: {len(self.numerical_features)}, "
+                f"Categorical features: {len(self.categorical_features)}"
+            )
+
             return preprocessor
-            
+
         except Exception as e:
-            raise FeatureEngineeringError(f"Preprocessor creation error: {str(e)}")
-    
+            raise FeatureEngineeringError(
+                f"Preprocessor creation error: {str(e)}"
+            )
+
     def transform_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Transform data using the preprocessor."""
         try:

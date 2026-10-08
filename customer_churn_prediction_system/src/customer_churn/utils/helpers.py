@@ -63,3 +63,36 @@ def chunk_dataframe(df: pd.DataFrame, chunk_size: int):
     """Yield chunks of a dataframe."""
     for i in range(0, len(df), chunk_size):
         yield df.iloc[i:i+chunk_size]
+
+def make_json_serializable(obj):
+    """Convert NumPy and other non-JSON-native objects to JSON-safe types."""
+    import numpy as np
+
+    if isinstance(obj, dict):
+        return {
+            str(key): make_json_serializable(value)
+            for key, value in obj.items()
+        }
+
+    if isinstance(obj, (list, tuple)):
+        return [make_json_serializable(value) for value in obj]
+
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+
+    if isinstance(obj, np.integer):
+        return int(obj)
+
+    if isinstance(obj, np.floating):
+        return float(obj)
+
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+
+    if obj is None or isinstance(obj, (str, int, float, bool)):
+        return obj
+
+    if hasattr(obj, "__fspath__"):
+        return str(obj)
+
+    return str(obj)

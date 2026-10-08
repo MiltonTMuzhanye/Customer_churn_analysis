@@ -49,7 +49,7 @@ async def batch_predict_churn(request: BatchPredictionRequest):
     """Predict churn for multiple customers."""
     try:
         # Convert request to DataFrame
-        df = pd.DataFrame(request.customers)
+        df = pd.DataFrame([customer.model_dump() for customer in request.customers])
         
         # Make predictions
         results = predictor.predict(df)

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import cross_val_predict, cross_val_score, KFold
+from sklearn.model_selection import cross_val_predict, cross_val_score, StratifiedKFold
 from sklearn.metrics import make_scorer, roc_auc_score
 from typing import Dict, Any, List, Tuple
 from ..utils.logger import default_logger as logger
@@ -26,7 +26,7 @@ class ModelValidator:
             }
             
             # Get predictions
-            kf = KFold(n_splits=cv, shuffle=True, random_state=42)
+            kf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
             y_pred = cross_val_predict(model, X, y, cv=kf, method='predict')
             
             # Get probabilities if available
@@ -50,8 +50,8 @@ class ModelValidator:
                 metrics['roc_auc'] = roc_auc_score(y, y_prob)
             
             # Get cross-validation scores
-            scorer = make_scorer(roc_auc_score, needs_proba=True) if scoring == 'roc_auc' else scoring
-            cv_scores = cross_val_score(model, X, y, cv=cv, scoring=scorer)
+            scoring = scoring_map.get(scoring, 'roc_auc')
+            cv_scores = cross_val_score(model, X, y, cv=kf, scoring=scoring)
             
             results = {
                 'metrics': metrics,

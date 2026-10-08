@@ -85,7 +85,7 @@ class ModelExplainer:
     def plot_shap_summary(self, shap_values: np.ndarray, X: pd.DataFrame = None, 
                          save_path: str = None):
         """Plot SHAP summary plot."""
-        X = X or self.X_train
+        X = self.X_train if X is None else X
         plt.figure(figsize=(10, 8))
         shap.summary_plot(shap_values, X, feature_names=self.feature_names, show=False)
         

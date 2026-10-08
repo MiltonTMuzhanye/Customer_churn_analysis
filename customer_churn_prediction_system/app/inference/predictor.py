@@ -51,6 +51,7 @@ class Predictor:
                 'model_version': '1.0.0',
                 'features': self.pipeline.features if self.pipeline else [],
                 'threshold': self.pipeline.threshold if self.pipeline else 0.5,
+                'metrics': {},
                 'training_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
